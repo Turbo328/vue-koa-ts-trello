@@ -1,23 +1,55 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
+import store from '@/store'
+
+const Home = () => import(/* webpackChunkName: "Home" */ '../views/Home.vue')
+const Board = () => import(/* webpackChunkName: "Board" */ '../views/Board.vue')
+const Card = () => import(/* webpackChunkName: "Card" */ '../views/Card.vue')
+const Register = () => import(/* webpackChunkName: "Register" */ '../views/Register.vue')
+const Login = () => import(/* webpackChunkName: "Login" */ '../views/Login.vue')
+const NotFound = () => import(/* webpackChunkName: "NotFound" */ '../views/NotFound.vue')
 
 Vue.use(VueRouter)
 
   const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: Home
-  },
-  {
-    path: '/about',
-    name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-  }
+    {
+      path: '/',
+      name: 'Home',
+      component: Home,
+      meta: {
+        auth: true
+      }
+    },
+    {
+      path: '/board/:id(\\d+)',
+      name: 'Board',
+      component: Board,
+      meta: {
+        auth: true
+      },
+      children: [
+        {
+          path: 'list/:listId(\\d+)/card/:cardId(\\d+)',
+          name: 'Card',
+          component: Card
+        }
+      ]
+    },
+    {
+      path: '/register',
+      name: 'Register',
+      component: Register
+    },
+    {
+      path: '/login',
+      name: 'Login',
+      component: Login
+    },
+    {
+      path: '*',
+      name: 'NotFound',
+      component: NotFound
+    },
 ]
 
 const router = new VueRouter({
@@ -25,5 +57,15 @@ const router = new VueRouter({
   base: process.env.BASE_URL,
   routes
 })
+
+store.commit('user/initUserInfo');
+router.beforeEach((to, from, next) => {
+  // 如果该路由需要鉴权，则验证用户信息，如果不通过，则跳到登录页
+  if (to.matched.some(matched => matched.meta.auth) && !store.state.user.info) {
+    next({name: 'Login'})
+  } else {
+    next();
+  }
+});
 
 export default router
